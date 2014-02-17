@@ -5,26 +5,18 @@
   SimpleTextEditor = {
     init: function() {
       var boldBtn, italicBtn;
-      this.editbox = document.querySelector('#editbox');
-      if (!this.editbox) {
+      this.contentHolder = document.querySelector('#editbox');
+      if (!this.contentHolder) {
         throw new Error('The editbox element has not been defined');
       }
-      this.editbox.addEventListener('keyup', this.saveData, false);
+      this.contentHolder.addEventListener('keyup', this, false);
       boldBtn = document.querySelector('#bold');
       if (boldBtn) {
-        boldBtn.addEventListener('click', (function(_this) {
-          return function(e) {
-            return _this.toggleBold(e);
-          };
-        })(this));
+        boldBtn.addEventListener('click', this, false);
       }
       italicBtn = document.querySelector('#italic');
       if (italicBtn) {
-        italicBtn.addEventListener('click', (function(_this) {
-          return function(e) {
-            return _this.toggleItalic(e);
-          };
-        })(this));
+        italicBtn.addEventListener('click', this, false);
       }
       return this.restoreDocument();
     },
@@ -34,22 +26,25 @@
         return function() {
           var data;
           window.clearTimeout(timeout);
-          data = _this.editbox.innerHTML;
+          data = _this.contentHolder.innerHTML;
           return window.localStorage.setItem('content', data);
         };
-      })(this), 2000);
+      })(this), 1000);
     },
     restoreDocument: function() {
       if (window.localStorage.content) {
-        return this.editbox.innerHTML = window.localStorage.content;
+        return this.contentHolder.innerHTML = window.localStorage.content;
       }
     },
-    toggleItalic: function() {
-      document.execCommand('italic');
-      return this.saveData(null);
-    },
-    toggleBold: function() {
-      document.execCommand('bold');
+    handleEvent: function(e) {
+      if (e.type === 'keyup') {
+        return this.saveData(null);
+      }
+      if (e.target.id === 'italic') {
+        document.execCommand('italic');
+      } else if (e.target.id === 'bold') {
+        document.execCommand('bold');
+      }
       return this.saveData(null);
     }
   };
