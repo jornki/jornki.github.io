@@ -35,7 +35,6 @@ DrawingApp =
     @ctx.strokeStyle = 'rgba(255,0,0,1)' # Red stroke
     @ctx.lineWidth = 5 * @scaleFactor # The thinkness of the stroke
     @ctx.lineCap = 'round' # How the "edge" of the line is drawn
-    @ctx.scale @scaleFactor, @scaleFactor
 
     # Add listeners to the canvas
     if @mode is 'touch'
