@@ -65,7 +65,7 @@ DrawingApp =
     # Paint the line
     @ctx.stroke()
 
-  touchCancelHandler: (e) =>
+  touchCancelHandler: (e) ->
     alert 'The application was paused'
 
   mouseDownHandler: (e) ->
