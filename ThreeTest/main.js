@@ -6,7 +6,12 @@ var main = {
 	camera   : null,
 	renderer : null,
 
-	earth : null,
+	earth         : null,
+	earthSettings : {
+		animate  : false,
+		increase : true,
+		rate     : 0.005
+	},
 
 	cube         : null,
 	cubeSettings : {
@@ -36,7 +41,9 @@ var main = {
 
 	projector : null,
 
-	angularSpeed : 0.2,
+	animate : null,
+
+	angularSpeed : 0.1,
 	lastTime     : 0,
 
 	init : function () {
@@ -67,16 +74,19 @@ var main = {
 		);
 		var material = new THREE.MeshPhongMaterial({
 			color : 0x0e0e0e
+			//map: THREE.ImageUtils.loadTexture('earthcloudmaptrans.jpg')
 		});
 
 		this.cube = new THREE.Mesh(geometry, material);
 		this.cube.overdraw = true;
-		this.cube.rotation.x = Math.PI * 0.1;
+		//this.cube.rotation.x = Math.PI * 0.1;
 		this.cube.position.x = 2;
 		this.scene.add(this.cube);
 
 		this.cubeDirLight = new THREE.DirectionalLight(0xffffff, 1.0);
 		this.cubeDirLight.target = this.cube;
+		this.cubeDirLight.position.x = 2;
+		this.cubeDirLight.rotation.x = Math.PI * 0.1;
 		this.cubeDirLight.intensity = 1.0;
 		this.scene.add(this.cubeDirLight);
 	},
@@ -85,7 +95,9 @@ var main = {
 		var geometry = new THREE.SphereGeometry(1, 32, 32);
 		var material = new THREE.MeshPhongMaterial(
 			{
-				map : THREE.ImageUtils.loadTexture('1_earth_8k.jpg')
+				map       : THREE.ImageUtils.loadTexture('1_earth_8k.jpg'),
+				bumpMap   : THREE.ImageUtils.loadTexture('earthbump1k.jpg'),
+				bumpScale : 0.005
 			}
 		);
 		this.earth = new THREE.Mesh(geometry, material);
@@ -117,15 +129,21 @@ var main = {
 	detectClick : function (mouseVector) {
 
 		var raycaster = this.projector.pickingRay(mouseVector.clone(), this.camera);
-		var intersects = raycaster.intersectObject(this.cube);
+		var intersects = raycaster.intersectObjects([this.cube, this.earth]);
 		//console.log(mouseVector, this.cube.position);
 		if (intersects.length > 0) {
 			//intersects[0].object.material.color.setHex(0xff0000);
-			if(this.cubeSettings.animate) {
-				this.cubeSettings.animate = false;
+			console.log(intersects[0].object.uuid, this.earth.uuid);
+			/*if (intersects[0].object.uuid === this.earth.uuid) {
+				this.earthSettings.animate = true;
 			} else {
-				this.cubeSettings.animate = true;
-			}
+				if (this.cubeSettings.animate) {
+					this.cubeSettings.animate = false;
+				} else {
+					this.cubeSettings.animate = true;
+				}
+			}*/
+			this.animate = true;
 		}
 	},
 
@@ -156,32 +174,25 @@ var main = {
 				this.lastTime = time;
 			}
 
-			if (this.cubeSettings.animate) {
-				if (this.cubeSettings.increase) {
-					this.cube.scale.set(
-							this.cube.scale.x + this.cubeSettings.rate,
-							this.cube.scale.y + this.cubeSettings.rate,
-							this.cube.scale.z + this.cubeSettings.rate
-					);
-					if (this.cube.scale.x >= 2) {
-						this.cubeSettings.increase = false;
-					}
-				} else {
-					this.cube.scale.set(
-							this.cube.scale.x - this.cubeSettings.rate,
-							this.cube.scale.y - this.cubeSettings.rate,
-							this.cube.scale.z - this.cubeSettings.rate
-					);
-					if (this.cube.scale.x <= 1) {
-						this.cubeSettings.animate = false;
-						this.cubeSettings.increase = true;
-					}
+			if (this.animate) {
+				if (this.cube.position.x >= 0.2) {
+					this.cube.position.x -= 0.005;
+				}
+				if (this.cube.position.z <= 1.3) {
+					this.cube.position.z += 0.005;
 				}
 			}
 		}
 
 		if (this.earth) {
 			this.earth.rotation.y += 0.005;
+
+			if(this.animate) {
+				if (this.earth.position.x <= 0) {
+					this.earth.position.x += 0.005;
+				}
+			}
+
 		}
 	},
 
