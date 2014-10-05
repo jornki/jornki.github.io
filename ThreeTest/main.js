@@ -68,7 +68,13 @@ var main = {
 
 		this.camera.position.z = 5;
 
-		this.addSphere();
+		this.addSphere(function() {
+			Tweener.addTween(this.earth.material, {
+				opacity: 1,
+				delay: 2,
+				time: 5
+			});
+		}.bind(this));
 		this.addDirectionalLight();
 		this.setupDOMEvents();
 		this.render();
@@ -86,7 +92,7 @@ var main = {
 			this.cubeSettings.geometry.depth
 		);
 		var material = new THREE.MeshPhongMaterial({
-			color: 0x0e0e0e,
+			color: 0x040300,
 			transparent: true
 			//map: THREE.ImageUtils.loadTexture('earthbump1k.jpg')
 		});
@@ -106,10 +112,12 @@ var main = {
 		});
 	},
 
-	addSphere: function() {
+	addSphere: function(callback) {
 		var geometry = new THREE.SphereGeometry(2.7, 32, 32);
 		var material = new THREE.MeshPhongMaterial({
-			map: THREE.ImageUtils.loadTexture('1_earth_8k.jpg'),
+			map: THREE.ImageUtils.loadTexture('1_earth_8k.jpg', null, function() {
+				callback();
+			}),
 			bumpMap: THREE.ImageUtils.loadTexture('earthbump1k.jpg'),
 			bumpScale: 0.005,
 			transparent: true
@@ -119,12 +127,6 @@ var main = {
 		this.earth.position.y = -1.5;
 		material.opacity = 0;
 		this.scene.add(this.earth);
-
-		Tweener.addTween(material, {
-			opacity: 1,
-			delay: 2,
-			time: 5
-		});
 	},
 
 	/*addAmbientLight: function() {
