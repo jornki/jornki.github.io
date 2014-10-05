@@ -54,7 +54,8 @@ var main = {
 			this.start();
 		}.bind(this));
 		this.sound.addEventListener('error', function(e) {
-			alert('Your browser cannot play m4a files - try Safari');
+			alert('Your browser cannot play m4a files - try Safari or Chrome');
+			return;
 		});
 
 		this.scene = new THREE.Scene();
