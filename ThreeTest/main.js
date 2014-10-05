@@ -23,6 +23,8 @@ var main = {
 
 	projector: null,
 
+	earthLoadStage: 0,
+
 	init: function() {
 		this.detectMobileDevice();
 
@@ -39,15 +41,11 @@ var main = {
 		// Pull the camera back a bit
 		this.camera.position.z = 5;
 
-		// Now ann earth
-		// Fade it in when the texture has loaded
-		this.addSphere(function() {
-			Tweener.addTween(this.earth.material, {
-				opacity: 1,
-				delay: 2,
-				time: 5
-			});
-		}.bind(this));
+		// Now add earth
+		// Preload and load textures
+		this.addEarth();
+		// The spot for the earth
+		this.addDirectionalLight();
 
 		// Sound
 		if (!this.isMobileDevice) {
@@ -60,6 +58,21 @@ var main = {
 		}
 	},
 
+	showEarth: function() {
+		// Both materials and the mobile splash screen
+		if (this.earthLoadStage === 3) {
+
+			Tweener.addTween(this.earth.material, {
+				opacity: 1,
+				delay: 2,
+				time: 5
+			});
+
+			// .. start the whole shit
+			this.start();
+		}
+	},
+
 	initiateSound: function(e) {
 		// Load and start playing the sound
 		this.sound = new Audio('2001.m4a');
@@ -68,12 +81,16 @@ var main = {
 		// Remove the mobile startscreen
 		if (this.isMobileDevice) {
 			document.querySelector('#start').style.display = "none";
+			this.earthLoadStage += 1;
+			this.showEarth();
+		} else {
+			this.sound.pause();
 		}
 
 		// When the sound can be played
 		this.sound.addEventListener('loadeddata', function() {
-			// .. start the whole shit
-			this.start();
+			this.earthLoadStage += 1;
+			this.showEarth();
 		}.bind(this));
 
 		// Notify people which cannot play aac (Firefox)
@@ -83,9 +100,7 @@ var main = {
 	},
 
 	start: function() {
-		// The spot for the earth
-		this.addDirectionalLight();
-
+		this.sound.play();
 		// Add the monolith
 		this.addCube();
 		// Add the light to the monolith
@@ -123,7 +138,7 @@ var main = {
 		});
 	},
 
-	addSphere: function(callback) {
+	addEarth: function() {
 
 		var map, bumpMap;
 		if (this.isMobileDevice) {
@@ -138,9 +153,13 @@ var main = {
 		var geometry = new THREE.SphereGeometry(2.7, 32, 32);
 		var material = new THREE.MeshPhongMaterial({
 			map: THREE.ImageUtils.loadTexture(map, null, function() {
-				callback();
-			}),
-			bumpMap: THREE.ImageUtils.loadTexture(bumpMap),
+				this.earthLoadStage += 1;
+				this.showEarth();
+			}.bind(this)),
+			bumpMap: THREE.ImageUtils.loadTexture(bumpMap, null, function() {
+				this.earthLoadStage += 1;
+				this.showEarth();
+			}.bind(this)),
 			bumpScale: 0.005,
 			transparent: true
 		});
