@@ -2,51 +2,61 @@
 
 var main = {
 
-	scene    : null,
-	camera   : null,
-	renderer : null,
+	scene: null,
+	camera: null,
+	renderer: null,
+	cubeSpotLight: null,
+	sound: null,
 
-	earth         : null,
-	earthSettings : {
-		animate  : false,
-		increase : true,
-		rate     : 0.005
+	earth: null,
+	earthSettings: {
+		animate: false,
+		increase: true,
+		rate: 0.005
 	},
 
-	cube         : null,
-	cubeSettings : {
-		geometry : {
-			width  : 0.5,
-			height : 1,
-			depth  : 0.15
+	cube: null,
+	cubeSettings: {
+		geometry: {
+			width: 0.025,
+			height: 0.05,
+			depth: 0.0075
 		},
-		increase : true,
-		rate     : 0.005,
-		animate  : false,
-		rotate   : true
+		increase: true,
+		rate: 0.005,
+		animate: false,
+		rotate: true
 	},
 
-	spotlight     : null,
-	lightSettings : {
-		increase     : true,
-		rate         : 0.005,
-		minIntensity : 0.1,
-		maxIntensity : 1.0,
-		animate      : false
+	spotlight: null,
+	lightSettings: {
+		increase: true,
+		rate: 0.005,
+		minIntensity: 0.1,
+		maxIntensity: 1.0,
+		animate: false
 	},
 
-	cubeDirLight : null,
+	cubeDirLight: null,
 
-	pointLight : null,
+	pointLight: null,
 
-	projector : null,
+	projector: null,
 
-	animate : null,
+	animate: null,
 
-	angularSpeed : 0.1,
-	lastTime     : 0,
+	angularSpeed: 0.1,
+	lastTime: 0,
 
-	init : function () {
+	init: function() {
+		this.sound = new Audio('2001.m4a');
+		this.sound.addEventListener('canplay', function(e) {
+			this.start();
+		}.bind(this));
+		this.sound.addEventListener('error', function(e) {
+			alert('Your browser cannot play m4a files - try Safari');
+		});
+
 		this.scene = new THREE.Scene();
 		this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
 		this.renderer = new THREE.WebGLRenderer();
@@ -57,113 +67,131 @@ var main = {
 
 		this.camera.position.z = 5;
 
-		this.addCube();
 		this.addSphere();
-		//this.addAmbientLight();
 		this.addDirectionalLight();
-		this.addPointLight();
 		this.setupDOMEvents();
 		this.render();
 	},
 
-	addCube : function () {
+	start: function() {
+		this.addCube();
+		this.addCubeSpotLight();
+	},
+
+	addCube: function() {
 		var geometry = new THREE.BoxGeometry(
 			this.cubeSettings.geometry.width,
 			this.cubeSettings.geometry.height,
 			this.cubeSettings.geometry.depth
 		);
 		var material = new THREE.MeshPhongMaterial({
-			color : 0x0e0e0e
-			//map: THREE.ImageUtils.loadTexture('earthcloudmaptrans.jpg')
+			color: 0x0e0e0e,
+			transparent: true
+			//map: THREE.ImageUtils.loadTexture('earthbump1k.jpg')
 		});
 
 		this.cube = new THREE.Mesh(geometry, material);
-		this.cube.overdraw = true;
-		//this.cube.rotation.x = Math.PI * 0.1;
-		this.cube.position.x = 2;
+		this.cube.position.x = 0;
+		this.cube.position.z = 4.8;
+		material.opacity = 0;
 		this.scene.add(this.cube);
 
-		this.cubeDirLight = new THREE.DirectionalLight(0xffffff, 1.0);
-		this.cubeDirLight.target = this.cube;
-		this.cubeDirLight.position.x = 2;
-		this.cubeDirLight.rotation.x = Math.PI * 0.1;
-		this.cubeDirLight.intensity = 1.0;
-		this.scene.add(this.cubeDirLight);
+		this.sound.play();
+		Tweener.addTween(material, {
+			opacity: 1,
+			time: 5,
+			delay: 10,
+			transition: "easeNone",
+		});
 	},
 
-	addSphere : function () {
-		var geometry = new THREE.SphereGeometry(1, 32, 32);
-		var material = new THREE.MeshPhongMaterial(
-			{
-				map       : THREE.ImageUtils.loadTexture('1_earth_8k.jpg'),
-				bumpMap   : THREE.ImageUtils.loadTexture('earthbump1k.jpg'),
-				bumpScale : 0.005
-			}
-		);
+	addSphere: function() {
+		var geometry = new THREE.SphereGeometry(2.7, 32, 32);
+		var material = new THREE.MeshPhongMaterial({
+			map: THREE.ImageUtils.loadTexture('1_earth_8k.jpg'),
+			bumpMap: THREE.ImageUtils.loadTexture('earthbump1k.jpg'),
+			bumpScale: 0.005,
+			transparent: true
+		});
 		this.earth = new THREE.Mesh(geometry, material);
-		this.earth.position.x = -1.2;
-		this.earth.overdraw = true;
+		this.earth.position.x = -1.5;
+		this.earth.position.y = -1.5;
+		material.opacity = 0;
 		this.scene.add(this.earth);
+
+		Tweener.addTween(material, {
+			opacity: 1,
+			delay: 2,
+			time: 5
+		});
 	},
 
-	addAmbientLight : function () {
+	/*addAmbientLight: function() {
 		// add subtle blue ambient lighting
-		var ambientLight = new THREE.AmbientLight(0x00ff00);
-		ambientLight.intensity = 0.2;
+		var ambientLight = new THREE.AmbientLight(0x0000ff);
+		ambientLight.intensity = 0.02;
 		this.scene.add(ambientLight);
-	},
+	},*/
 
-	addDirectionalLight : function () {
-		// directional lighting
-		this.spotlight = new THREE.DirectionalLight(0xffffff);
-		this.spotlight.position.set(1.5, 1, 1).normalize();
+	addDirectionalLight: function() {
+		this.spotlight = new THREE.SpotLight(0xffffff, 1.7);
+		this.spotlight.position.set(-1, 6, 1);
+		this.spotlight.lookAt(this.earth);
 		this.scene.add(this.spotlight);
 	},
 
-	addPointLight : function () {
-		this.pointLight = new THREE.PointLight(0xffffff, 1.0, 100);
-		this.pointLight.position.set(0, 0, 0);
+	/*addPointLight: function() {
+		this.pointLight = new THREE.PointLight(0xffffff, 0.5, 100);
+		this.pointLight.position.set(0, 0, 2.4);
 		this.scene.add(this.pointLight);
+		this.scene.add(new THREE.PointLightHelper(this.pointLight, 3));
+	},*/
+
+	addCubeSpotLight: function() {
+		this.cubeSpotLight = new THREE.SpotLight(0xffffff);
+		this.cubeSpotLight.position.set(0, 0, 5);
+		this.cubeSpotLight.intensity = 1.5;
+		this.cubeSpotLight.distance = 2.87;
+		this.cubeSpotLight.lookAt(this.cube);
+		this.scene.add(this.cubeSpotLight);
 	},
 
-	detectClick : function (mouseVector) {
+	detectClick: function(mouseVector) {
 
 		var raycaster = this.projector.pickingRay(mouseVector.clone(), this.camera);
 		var intersects = raycaster.intersectObjects([this.cube, this.earth]);
-		//console.log(mouseVector, this.cube.position);
 		if (intersects.length > 0) {
-			//intersects[0].object.material.color.setHex(0xff0000);
-			console.log(intersects[0].object.uuid, this.earth.uuid);
-			/*if (intersects[0].object.uuid === this.earth.uuid) {
-				this.earthSettings.animate = true;
-			} else {
-				if (this.cubeSettings.animate) {
-					this.cubeSettings.animate = false;
-				} else {
-					this.cubeSettings.animate = true;
-				}
-			}*/
-			this.animate = true;
+			if (intersects[0].object.uuid === this.cube.uuid) {
+				Tweener.addTween(this.cube.position, {
+					x: -1.2,
+					z: 2.3,
+					time: 5,
+					transition: "easeInOutCubic"
+				});
+
+				Tweener.addTween(this.cube.material, {
+					opacity: 0,
+					time: 1,
+					delay: 4,
+					transition: "easeNone",
+					onComplete: function() {
+						Tweener.addTween(this.sound, {
+							volume: 0,
+							time: 2,
+							delay: 0.5,
+							onComplete: function() {
+								this.sound.pause();
+							}.bind(this)
+						});
+					}.bind(this)
+				});
+			}
 		}
 	},
 
-	render         : function () {
+	render: function() {
 		requestAnimationFrame(this.render.bind(this));
 		this.renderer.render(this.scene, this.camera);
-
-		if (this.spotlight && this.lightSettings.animate) {
-			if (this.lightSettings.increase) {
-				this.spotlight.intensity += this.lightSettings.rate;
-				if (this.spotlight.intensity >= this.lightSettings.maxIntensity) {
-					this.lightSettings.increase = false;
-				}
-			} else {
-				this.spotlight.intensity -= this.lightSettings.rate;
-				if (this.spotlight.intensity <= this.lightSettings.minIntensity) {
-					this.lightSettings.increase = true;
-				}
-			}
-		}
 
 		if (this.cube) {
 			if (this.cubeSettings.rotate) {
@@ -173,32 +201,16 @@ var main = {
 				this.cube.rotation.y += angleChange;
 				this.lastTime = time;
 			}
-
-			if (this.animate) {
-				if (this.cube.position.x >= 0.2) {
-					this.cube.position.x -= 0.005;
-				}
-				if (this.cube.position.z <= 1.3) {
-					this.cube.position.z += 0.005;
-				}
-			}
 		}
 
 		if (this.earth) {
-			this.earth.rotation.y += 0.005;
-
-			if(this.animate) {
-				if (this.earth.position.x <= 0) {
-					this.earth.position.x += 0.005;
-				}
-			}
-
+			this.earth.rotation.y += 0.0003;
 		}
 	},
 
 	// DOM EVENTS
-	setupDOMEvents : function () {
-		document.querySelector('canvas').addEventListener('click', function (event) {
+	setupDOMEvents: function() {
+		document.querySelector('canvas').addEventListener('click', function(event) {
 			event.preventDefault();
 			console.log(event.clientX / event.target.width * 2, event.clientY / event.target.height * 2);
 			var mouseVector = new THREE.Vector3();
