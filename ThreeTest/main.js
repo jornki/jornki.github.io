@@ -12,7 +12,8 @@ var main = {
 	earthSettings: {
 		animate: false,
 		increase: true,
-		rate: 0.005
+		rate: 0.005,
+		mouseOverAnimating: false
 	},
 
 	cube: null,
@@ -175,7 +176,7 @@ var main = {
 				Tweener.addTween(this.cube.material, {
 					opacity: 0,
 					time: 1,
-					delay: 4,
+					delay: 3.5,
 					transition: "easeNone",
 					onComplete: function() {
 						Tweener.addTween(this.sound, {
@@ -190,6 +191,35 @@ var main = {
 				});
 			}
 		}
+	},
+
+	detectMouseOver: function(mouseVector) {
+		var raycaster = this.projector.pickingRay(mouseVector.clone(), this.camera);
+		var intersects = raycaster.intersectObjects([this.cube, this.earth]);
+
+		if (intersects.length > 0 && intersects[0].object.uuid === this.cube.uuid) {
+			var scaleBy = 1.1;
+			this.cubeSettings.mouseOverAnimating = true;
+			Tweener.addTween(this.cube.scale, {
+				x: scaleBy,
+				y: scaleBy,
+				z: scaleBy,
+				time: 0.5,
+				transition: "easeOutCubic",
+				onComplete: function() {
+					Tweener.addTween(this.cube.scale, {
+						x: 1,
+						y: 1,
+						z: 1,
+						time: 1,
+						transition: "easeOutCubic",
+						onComplete: function() {
+							this.cubeSettings.mouseOverAnimating = false;
+						}.bind(this)
+					});
+				}.bind(this)
+			});
+		} 
 	},
 
 	render: function() {
@@ -220,6 +250,17 @@ var main = {
 			mouseVector.x = 2 * (event.clientX / window.innerWidth) - 1;
 			mouseVector.y = 1 - 2 * (event.clientY / window.innerHeight);
 			this.detectClick(mouseVector);
+		}.bind(this), false);
+
+		document.querySelector('canvas').addEventListener('mousemove', function(event) {
+			if (!this.cube || this.cubeSettings.mouseOverAnimating === true) {
+				return;
+			}
+			event.preventDefault();
+			var mouseVector = new THREE.Vector3();
+			mouseVector.x = 2 * (event.clientX / window.innerWidth) - 1;
+			mouseVector.y = 1 - 2 * (event.clientY / window.innerHeight);
+			this.detectMouseOver(mouseVector);
 		}.bind(this), false);
 	}
 
