@@ -5,10 +5,28 @@
 		<style>
 			body {margin:0; padding:0; background-color: black}
 			canvas { width: 100%; height: 100% }
+			#start {
+				position: absolute;
+				top: 0;
+				bottom: 0;
+				left: 0;
+				right: 0;
+				background: black;
+				display: none;
+			}
+			#start p {
+				width: 250px;
+				margin: 0 auto;
+				margin-top: 50px;
+				color: white;
+			}
 		</style>
 		<meta charset="UTF-8">
 	</head>
 	<body>
+		<div id="start">
+			<p>This demo will play audio - tap anywhere to continue.<p>
+		</div>
 		<script type="text/javascript" src="three.js"></script>
 		<script type="text/javascript" src="Tweener.js"></script>
 		<script type="text/javascript" src="main.js"></script>

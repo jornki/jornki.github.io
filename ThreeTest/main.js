@@ -38,6 +38,8 @@ var main = {
 		animate: false
 	},
 
+	isMobileDevice: true,
+
 	cubeDirLight: null,
 
 	pointLight: null,
@@ -50,14 +52,6 @@ var main = {
 	lastTime: 0,
 
 	init: function() {
-		this.sound = new Audio('2001.m4a');
-		this.sound.addEventListener('canplay', function(e) {
-			this.start();
-		}.bind(this));
-		this.sound.addEventListener('error', function(e) {
-			alert('Your browser cannot play m4a files - try Safari or Chrome');
-			return;
-		});
 
 		this.scene = new THREE.Scene();
 		this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -69,6 +63,35 @@ var main = {
 
 		this.camera.position.z = 5;
 
+		if (!this.detectMobileDevice()) {
+			this.initiateSound();
+		} else {
+			var startScreen = document.querySelector('#start');
+			startScreen.style.display = "block";
+			startScreen.addEventListener('touchstart', this.initiateSound.bind(this));
+		}
+	},
+
+	initiateSound: function(e) {
+		console.log('Initiate sound');
+		this.sound = new Audio('2001.m4a');
+		this.sound.play();
+
+		if (this.isMobileDevice) {
+			document.querySelector('#start').style.display = "none";
+		}
+
+		this.sound.addEventListener('loadeddata', function() {
+			console.log('Loaded data');
+			this.start();
+		}.bind(this));
+
+		this.sound.addEventListener('error', function(e) {
+			alert('Your browser cannot play m4a files - try Safari or Chrome');
+		});
+	},
+
+	start: function() {
 		this.addSphere(function() {
 			Tweener.addTween(this.earth.material, {
 				opacity: 1,
@@ -79,9 +102,6 @@ var main = {
 		this.addDirectionalLight();
 		this.setupDOMEvents();
 		this.render();
-	},
-
-	start: function() {
 		this.addCube();
 		this.addCubeSpotLight();
 	},
@@ -95,7 +115,6 @@ var main = {
 		var material = new THREE.MeshPhongMaterial({
 			color: 0x040300,
 			transparent: true
-			//map: THREE.ImageUtils.loadTexture('earthbump1k.jpg')
 		});
 
 		this.cube = new THREE.Mesh(geometry, material);
@@ -104,7 +123,6 @@ var main = {
 		material.opacity = 0;
 		this.scene.add(this.cube);
 
-		this.sound.play();
 		Tweener.addTween(material, {
 			opacity: 1,
 			time: 5,
@@ -114,12 +132,23 @@ var main = {
 	},
 
 	addSphere: function(callback) {
+
+		var map, bumpMap;
+		if (this.isMobileDevice) {
+			map = '1_earth_8k_mobile.jpg';
+			bumpMap = 'earthbump1k_mobile.jpg';
+		} else {
+			map = '1_earth_8k.jpg';
+			bumpMap = 'earthbump1k.jpg';
+		}
+
+
 		var geometry = new THREE.SphereGeometry(2.7, 32, 32);
 		var material = new THREE.MeshPhongMaterial({
-			map: THREE.ImageUtils.loadTexture('1_earth_8k.jpg', null, function() {
+			map: THREE.ImageUtils.loadTexture(map, null, function() {
 				callback();
 			}),
-			bumpMap: THREE.ImageUtils.loadTexture('earthbump1k.jpg'),
+			bumpMap: THREE.ImageUtils.loadTexture(bumpMap),
 			bumpScale: 0.005,
 			transparent: true
 		});
@@ -179,14 +208,18 @@ var main = {
 					delay: 3.5,
 					transition: "easeNone",
 					onComplete: function() {
-						Tweener.addTween(this.sound, {
-							volume: 0,
-							time: 2,
-							delay: 0.5,
-							onComplete: function() {
-								this.sound.pause();
-							}.bind(this)
-						});
+						if (this.isMobileDevice) {
+							this.sound.pause();
+						} else {
+							Tweener.addTween(this.sound, {
+								volume: 0,
+								time: 2,
+								delay: 0.5,
+								onComplete: function() {
+									this.sound.pause();
+								}.bind(this)
+							});
+						}
 					}.bind(this)
 				});
 			}
@@ -219,7 +252,7 @@ var main = {
 					});
 				}.bind(this)
 			});
-		} 
+		}
 	},
 
 	render: function() {
@@ -243,7 +276,8 @@ var main = {
 
 	// DOM EVENTS
 	setupDOMEvents: function() {
-		document.querySelector('canvas').addEventListener('click', function(event) {
+		var ev = this.isMobileDevice ? "touchstart" : "click";
+		document.querySelector('canvas').addEventListener(ev, function(event) {
 			event.preventDefault();
 			console.log(event.clientX / event.target.width * 2, event.clientY / event.target.height * 2);
 			var mouseVector = new THREE.Vector3();
@@ -252,16 +286,30 @@ var main = {
 			this.detectClick(mouseVector);
 		}.bind(this), false);
 
-		document.querySelector('canvas').addEventListener('mousemove', function(event) {
-			if (!this.cube || this.cubeSettings.mouseOverAnimating === true) {
-				return;
-			}
-			event.preventDefault();
-			var mouseVector = new THREE.Vector3();
-			mouseVector.x = 2 * (event.clientX / window.innerWidth) - 1;
-			mouseVector.y = 1 - 2 * (event.clientY / window.innerHeight);
-			this.detectMouseOver(mouseVector);
-		}.bind(this), false);
+		if (!this.isMobileDevice) {
+			document.querySelector('canvas').addEventListener('mousemove', function(event) {
+				if (!this.cube || this.cubeSettings.mouseOverAnimating === true) {
+					return;
+				}
+				event.preventDefault();
+				var mouseVector = new THREE.Vector3();
+				mouseVector.x = 2 * (event.clientX / window.innerWidth) - 1;
+				mouseVector.y = 1 - 2 * (event.clientY / window.innerHeight);
+				this.detectMouseOver(mouseVector);
+			}.bind(this), false);
+		}
+
+	},
+
+	detectMobileDevice: function() {
+		if (navigator.userAgent.toLowerCase().indexOf('ipad') > -1) {
+			return this.isMobileDevice = true;
+		}
+		if (navigator.userAgent.toLowerCase().indexOf('iphone') > -1) {
+			return this.isMobileDevice = true;
+		}
+
+		return this.isMobileDevice = false;
 	}
 
 };
