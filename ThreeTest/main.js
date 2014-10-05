@@ -9,89 +9,38 @@ var main = {
 	sound: null,
 
 	earth: null,
-	earthSettings: {
-		animate: false,
-		increase: true,
-		rate: 0.005,
-		mouseOverAnimating: false
-	},
 
 	cube: null,
 	cubeSettings: {
-		geometry: {
-			width: 0.025,
-			height: 0.05,
-			depth: 0.0075
-		},
-		increase: true,
-		rate: 0.005,
-		animate: false,
-		rotate: true
+		mouseOverAnimating: false
 	},
 
 	spotlight: null,
-	lightSettings: {
-		increase: true,
-		rate: 0.005,
-		minIntensity: 0.1,
-		maxIntensity: 1.0,
-		animate: false
-	},
 
 	isMobileDevice: true,
-
-	cubeDirLight: null,
 
 	pointLight: null,
 
 	projector: null,
 
-	animate: null,
-
-	angularSpeed: 0.1,
-	lastTime: 0,
-
 	init: function() {
+		this.detectMobileDevice();
 
+		// Setup the scene and stuff
 		this.scene = new THREE.Scene();
 		this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
 		this.renderer = new THREE.WebGLRenderer();
 		this.projector = new THREE.Projector();
 
+		// Use the whole window
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
 		document.body.appendChild(this.renderer.domElement);
 
+		// Pull the camera back a bit
 		this.camera.position.z = 5;
 
-		if (!this.detectMobileDevice()) {
-			this.initiateSound();
-		} else {
-			var startScreen = document.querySelector('#start');
-			startScreen.style.display = "block";
-			startScreen.addEventListener('touchstart', this.initiateSound.bind(this));
-		}
-	},
-
-	initiateSound: function(e) {
-		console.log('Initiate sound');
-		this.sound = new Audio('2001.m4a');
-		this.sound.play();
-
-		if (this.isMobileDevice) {
-			document.querySelector('#start').style.display = "none";
-		}
-
-		this.sound.addEventListener('loadeddata', function() {
-			console.log('Loaded data');
-			this.start();
-		}.bind(this));
-
-		this.sound.addEventListener('error', function(e) {
-			alert('Your browser cannot play m4a files - try Safari or Chrome');
-		});
-	},
-
-	start: function() {
+		// Now ann earth
+		// Fade it in when the texture has loaded
 		this.addSphere(function() {
 			Tweener.addTween(this.earth.material, {
 				opacity: 1,
@@ -99,18 +48,61 @@ var main = {
 				time: 5
 			});
 		}.bind(this));
+
+		// Sound
+		if (!this.isMobileDevice) {
+			this.initiateSound();
+		} else {
+			// iOS requires that sound is user initiated
+			var startScreen = document.querySelector('#start');
+			startScreen.style.display = "block";
+			startScreen.addEventListener('touchstart', this.initiateSound.bind(this));
+		}
+	},
+
+	initiateSound: function(e) {
+		// Load and start playing the sound
+		this.sound = new Audio('2001.m4a');
+		this.sound.play();
+
+		// Remove the mobile startscreen
+		if (this.isMobileDevice) {
+			document.querySelector('#start').style.display = "none";
+		}
+
+		// When the sound can be played
+		this.sound.addEventListener('loadeddata', function() {
+			// .. start the whole shit
+			this.start();
+		}.bind(this));
+
+		// Notify people which cannot play aac (Firefox)
+		this.sound.addEventListener('error', function(e) {
+			alert('Your browser cannot play m4a files - try Safari or Chrome');
+		});
+	},
+
+	start: function() {
+		// The spot for the earth
 		this.addDirectionalLight();
-		this.setupDOMEvents();
-		this.render();
+
+		// Add the monolith
 		this.addCube();
+		// Add the light to the monolith
 		this.addCubeSpotLight();
+
+		// Attach the events
+		this.setupDOMEvents();
+
+		// Start rendering
+		this.render();
 	},
 
 	addCube: function() {
 		var geometry = new THREE.BoxGeometry(
-			this.cubeSettings.geometry.width,
-			this.cubeSettings.geometry.height,
-			this.cubeSettings.geometry.depth
+			0.025,
+			0.05,
+			0.0075
 		);
 		var material = new THREE.MeshPhongMaterial({
 			color: 0x040300,
@@ -159,13 +151,7 @@ var main = {
 		this.scene.add(this.earth);
 	},
 
-	/*addAmbientLight: function() {
-		// add subtle blue ambient lighting
-		var ambientLight = new THREE.AmbientLight(0x0000ff);
-		ambientLight.intensity = 0.02;
-		this.scene.add(ambientLight);
-	},*/
-
+	// The light for earth
 	addDirectionalLight: function() {
 		this.spotlight = new THREE.SpotLight(0xffffff, 1.7);
 		this.spotlight.position.set(-1, 6, 1);
@@ -173,13 +159,7 @@ var main = {
 		this.scene.add(this.spotlight);
 	},
 
-	/*addPointLight: function() {
-		this.pointLight = new THREE.PointLight(0xffffff, 0.5, 100);
-		this.pointLight.position.set(0, 0, 2.4);
-		this.scene.add(this.pointLight);
-		this.scene.add(new THREE.PointLightHelper(this.pointLight, 3));
-	},*/
-
+	// The light for the monolith
 	addCubeSpotLight: function() {
 		this.cubeSpotLight = new THREE.SpotLight(0xffffff);
 		this.cubeSpotLight.position.set(0, 0, 5);
@@ -189,12 +169,18 @@ var main = {
 		this.scene.add(this.cubeSpotLight);
 	},
 
+	// When the user clicks or taps the screen
 	detectClick: function(mouseVector) {
-
+		// Cast a ray from the camera to where the event happened
 		var raycaster = this.projector.pickingRay(mouseVector.clone(), this.camera);
+		// Get all intersections
 		var intersects = raycaster.intersectObjects([this.cube, this.earth]);
 		if (intersects.length > 0) {
+			// Check if the ray intersects with the monolith
 			if (intersects[0].object.uuid === this.cube.uuid) {
+				// If so, start the dramatic exit phase
+
+				// Move the monolith into earth
 				Tweener.addTween(this.cube.position, {
 					x: -1.2,
 					z: 2.3,
@@ -202,12 +188,18 @@ var main = {
 					transition: "easeInOutCubic"
 				});
 
+				// Face it out when it approaches earth
 				Tweener.addTween(this.cube.material, {
 					opacity: 0,
 					time: 1,
 					delay: 3.5,
 					transition: "easeNone",
 					onComplete: function() {
+						// The monolith is now gone, so we can stop rendering it
+						this.cube = null;
+
+						// Stop the sound on mobile devices
+						// or fade it out on desktop devices
 						if (this.isMobileDevice) {
 							this.sound.pause();
 						} else {
@@ -226,6 +218,7 @@ var main = {
 		}
 	},
 
+	// Makes the monolith react to when a mouse pointer hovers over it
 	detectMouseOver: function(mouseVector) {
 		var raycaster = this.projector.pickingRay(mouseVector.clone(), this.camera);
 		var intersects = raycaster.intersectObjects([this.cube, this.earth]);
@@ -255,23 +248,23 @@ var main = {
 		}
 	},
 
+	// Rendering
 	render: function() {
-		requestAnimationFrame(this.render.bind(this));
-		this.renderer.render(this.scene, this.camera);
 
+		// If the monolith still exists, rotate it
 		if (this.cube) {
-			if (this.cubeSettings.rotate) {
-				var time = (new Date()).getTime();
-				var timeDiff = time - this.lastTime;
-				var angleChange = this.angularSpeed * timeDiff * 2 * Math.PI / 1000;
-				this.cube.rotation.y += angleChange;
-				this.lastTime = time;
-			}
+			this.cube.rotation.y += 0.01;
 		}
 
 		if (this.earth) {
 			this.earth.rotation.y += 0.0003;
 		}
+
+		// Re-render at 60fps
+		requestAnimationFrame(this.render.bind(this));
+
+		// Main render
+		this.renderer.render(this.scene, this.camera);
 	},
 
 	// DOM EVENTS
@@ -302,10 +295,8 @@ var main = {
 	},
 
 	detectMobileDevice: function() {
-		if (navigator.userAgent.toLowerCase().indexOf('ipad') > -1) {
-			return this.isMobileDevice = true;
-		}
-		if (navigator.userAgent.toLowerCase().indexOf('iphone') > -1) {
+		var UAString = navigator.userAgent.toLowerCase();
+		if ((UAString.indexOf('ipad') > -1) || (UAString.indexOf('iphone') > -1)) {
 			return this.isMobileDevice = true;
 		}
 
